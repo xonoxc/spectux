@@ -1,4 +1,4 @@
-# Spectux 
+# Spectux
 
 **Spectux** is a browser-native non-linear video editor built around a modern client-side architecture.
 
@@ -7,10 +7,10 @@ The goal of Spectux is to bring desktop-style video editing workflows into the b
 It is not a video converter.
 
 Spectux treats editing as a project document:
+
 - edits are non-destructive
 - timeline operations are deterministic
 - rendering happens only during export
-
 
 ---
 
@@ -67,15 +67,13 @@ One polished workflow.
 
 # Features Roadmap
 
-
 ## Project System
 
-- [ ] Create new project
-- [ ] Store project metadata
-- [ ] Save project locally
-- [ ] Reload existing projects
-- [ ] Serialize timeline document
-
+- [x] Create new project
+- [x] Store project metadata
+- [x] Save project locally
+- [x] Reload existing projects
+- [x] Serialize timeline document
 
 Storage:
 
@@ -83,16 +81,14 @@ Storage:
 - Project JSON
 - Asset blobs
 
-
 ---
-
 
 ## Media System
 
-- [ ] Import MP4 files
+- [x] Import MP4 files
 - [ ] Drag/drop upload support
-- [ ] Store media assets locally
-- [ ] Generate asset metadata
+- [x] Store media assets locally
+- [x] Generate asset metadata
 
 Asset model:
 
@@ -116,9 +112,7 @@ Not included in v0.1:
 - media folders
 - asset search
 
-
 ---
-
 
 ## Preview Engine
 
@@ -129,15 +123,13 @@ Powered by:
 - HTMLVideoElement
 - Browser APIs
 
-
 Features:
 
 - [ ] Play video
 - [ ] Pause video
-- [ ] Seek timeline
-- [ ] Display current timestamp
-- [ ] Sync playhead
-
+- [x] Seek timeline
+- [x] Display current timestamp
+- [x] Sync playhead
 
 Not included:
 
@@ -145,9 +137,7 @@ Not included:
 - transitions
 - WebGL rendering
 
-
 ---
-
 
 # Timeline Engine
 
@@ -174,29 +164,25 @@ Clip {
 }
 ```
 
-
 Pixels are calculated:
 
 ```ts
 position = time * zoom
 ```
 
-
 ## Timeline v0.1
 
-- [ ] Single video track
-- [ ] Timeline ruler
-- [ ] Playhead
-- [ ] Clip selection
-
+- [x] Single video track
+- [x] Timeline ruler
+- [x] Playhead
+- [x] Clip selection
 
 Editing:
 
-- [ ] Move clips
-- [ ] Trim clip start/end
-- [ ] Split clip at playhead
-- [ ] Delete clips
-
+- [x] Move clips
+- [x] Trim clip start/end
+- [x] Split clip at playhead
+- [x] Delete clips
 
 Future:
 
@@ -205,14 +191,11 @@ Future:
 - Transitions
 - Keyframes
 
-
 ---
-
 
 # Command System
 
 All destructive operations pass through commands.
-
 
 Example:
 
@@ -228,42 +211,34 @@ MoveClipCommand
 Timeline Update
 ```
 
-
 Enables:
 
 - undo
 - redo
 - history tracking
 
-
 Commands:
 
-- [ ] MoveClipCommand
+- [x] MoveClipCommand
 
-- [ ] TrimClipCommand
+- [x] TrimClipCommand
 
-- [ ] SplitClipCommand
+- [x] SplitClipCommand
 
-- [ ] DeleteClipCommand
-
+- [x] DeleteClipCommand
 
 History:
 
-- [ ] Undo support
-- [ ] Redo support
-
+- [x] Undo support
+- [x] Redo support
 
 ---
 
-
 # Rendering Engine
-
 
 FFmpeg WASM is used only for final export.
 
-
 Flow:
-
 
 ```
 Project JSON
@@ -281,14 +256,12 @@ FFmpeg Worker
 MP4 Output
 ```
 
-
 Features:
 
-- [ ] Load FFmpeg WASM
-- [ ] Generate render commands
-- [ ] Export edited timeline
+- [x] Load FFmpeg WASM
+- [x] Generate render commands
+- [x] Export edited timeline
 - [ ] Progress reporting
-
 
 Supported v0.1 operations:
 
@@ -296,21 +269,15 @@ Supported v0.1 operations:
 - split clip rendering
 - concatenation
 
-
 ---
-
 
 # State Architecture
 
-
 Spectux separates state by responsibility.
-
 
 ## XState
 
-
 Workflow state:
-
 
 ```
 idle
@@ -322,9 +289,7 @@ editing
 error
 ```
 
-
 Playback:
-
 
 ```
 paused
@@ -334,9 +299,7 @@ playing
 seeking
 ```
 
-
 Export:
-
 
 ```
 idle
@@ -350,13 +313,9 @@ completed
 failed
 ```
 
-
-
 ---
 
-
 ## Editor Store
-
 
 Stores:
 
@@ -366,21 +325,16 @@ Stores:
 - zoom level
 - active tool
 
-
 Powered by:
 
 - Zustand
 - Immer
 
-
 ---
-
 
 ## Async State
 
-
 Managed by TanStack Query.
-
 
 Used for:
 
@@ -388,21 +342,15 @@ Used for:
 - project loading
 - metadata fetching
 
-
 Not used for timeline state.
-
 
 ---
 
-
 # Error Handling
-
 
 Spectux uses typed Result based errors.
 
-
 No exception-driven domain logic.
-
 
 Example:
 
@@ -410,28 +358,23 @@ Example:
 Result<Project, EditorError>
 ```
 
-
 Errors:
 
 ```ts
 {
- type:"TIMELINE.CLIP_NOT_FOUND"
+  type: 'TIMELINE.CLIP_NOT_FOUND'
 }
 
 {
- type:"FFMPEG.EXPORT_FAILED"
+  type: 'FFMPEG.EXPORT_FAILED'
 }
 ```
 
-
 ---
-
 
 # Interface
 
-
 Professional editor-inspired layout:
-
 
 ```
 +---------------------------+-------------+
@@ -448,22 +391,18 @@ Professional editor-inspired layout:
 +-----------------------------------------+
 ```
 
-
 v0.1 UI:
 
-- [ ] Dark editor interface
+- [x] Dark editor interface
 - [ ] Resizable panels
-- [ ] Media browser
-- [ ] Preview monitor
-- [ ] Timeline
-- [ ] Transport controls
-
+- [x] Media browser
+- [x] Preview monitor
+- [x] Timeline
+- [x] Transport controls
 
 ---
 
-
 # Tech Stack
-
 
 Frontend:
 
@@ -472,13 +411,11 @@ Frontend:
 - TypeScript
 - Tailwind
 
-
 State:
 
 - XState
 - Zustand
 - TanStack Query
-
 
 Editor:
 
@@ -486,12 +423,10 @@ Editor:
 - Web Workers
 - Comlink
 
-
 Storage:
 
 - IndexedDB
 - Dexie
-
 
 Quality:
 
@@ -499,49 +434,43 @@ Quality:
 - Zod
 - neverthrow
 
-
 ---
-
 
 # v0.1 Checklist
 
-
 Core:
 
-- [ ] Create project
+- [x] Create project
 
-- [ ] Import MP4
+- [x] Import MP4
 
-- [ ] Store video locally
+- [x] Store video locally
 
-- [ ] Add clip to timeline
+- [x] Add clip to timeline
 
 - [ ] Preview playback
 
-- [ ] Seek timeline
+- [x] Seek timeline
 
-- [ ] Move clip
+- [x] Move clip
 
-- [ ] Trim clip
+- [x] Trim clip
 
-- [ ] Split clip
+- [x] Split clip
 
-- [ ] Delete clip
+- [x] Delete clip
 
-- [ ] Undo / Redo
+- [x] Undo / Redo
 
-- [ ] Save project
+- [x] Save project
 
-- [ ] Reload project
+- [x] Reload project
 
-- [ ] Export MP4
-
+- [x] Export MP4
 
 ---
 
-
 # Philosophy
-
 
 Spectux is built like an editor engine first,
 and a web application second.
@@ -549,5 +478,7 @@ and a web application second.
 The browser is the runtime.
 
 The timeline is the source of truth.
+
+```
 
 ```

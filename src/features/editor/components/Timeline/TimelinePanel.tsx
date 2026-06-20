@@ -4,6 +4,7 @@ import { TimeRuler } from './TimeRuler'
 import { Playhead } from './Playhead'
 import { TrackRow } from './TrackRow'
 import { Scissors, MousePointer2, MoveHorizontal } from 'lucide-react'
+import { findClipAtTime, createSplitClipCommand, canSplitAt } from '~'
 
 const TRACK_HEIGHT = 48
 const HEADER_WIDTH = 120
@@ -39,12 +40,25 @@ export function TimelinePanel() {
   const playheadX = currentTime * pixelsPerSecond
 
   function handleTimelineClick(e: React.MouseEvent) {
-    if (selectedTool === 'cut') return
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const scrollLeft = scrollRef.current?.scrollLeft ?? 0
     const x = e.clientX - rect.left + scrollLeft - HEADER_WIDTH
     const time = Math.max(0, x / pixelsPerSecond)
     setCurrentTime(Math.min(time, duration))
+
+    if (selectedTool === 'cut') {
+      const store = useProjectStore.getState()
+      const tracks = store.project.timeline.tracks
+      for (const track of tracks) {
+        const clip = findClipAtTime(track, time)
+        if (clip && canSplitAt(store.project, clip.id, time)) {
+          const command = createSplitClipCommand({ clipId: clip.id, splitTime: time })
+          store.executeCommand(command)
+          break
+        }
+      }
+      return
+    }
   }
 
   const tools = [

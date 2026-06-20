@@ -1,35 +1,76 @@
 import { useProjectStore } from '../../store/project.store'
 import { findClip } from '~'
+import { X } from 'lucide-react'
 
 export function InspectorPanel() {
   const project = useProjectStore((s) => s.project)
   const selectedClipIds = useProjectStore((s) => s.selectedClipIds)
+  const inspectedAssetId = useProjectStore((s) => s.inspectedAssetId)
+  const closeInspector = useProjectStore((s) => s.closeInspector)
 
   const selectedClip =
     selectedClipIds.length === 1
       ? findClip(project.timeline, selectedClipIds[0])
       : null
 
+  const inspectedAsset = inspectedAssetId
+    ? project.assets.find((a) => a.id === inspectedAssetId) ?? null
+    : null
+
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-neutral-800 px-3 py-2">
+      <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
         <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
-          Inspector
+          {inspectedAsset ? 'Asset' : 'Inspector'}
         </span>
+        <button
+          onClick={closeInspector}
+          className="rounded p-0.5 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300"
+          title="Close"
+        >
+          <X size={13} />
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto p-3">
-        {!selectedClip && (
+        {inspectedAsset && <AssetProperties asset={inspectedAsset} />}
+        {!inspectedAsset && !selectedClip && (
           <p className="text-center text-xs text-neutral-600">
-            Select a clip to inspect
+            Select a clip or inspect an asset
           </p>
         )}
-        {selectedClip?.isOk() && (
+        {!inspectedAsset && selectedClip?.isOk() && (
           <ClipProperties
             clip={selectedClip.value.clip}
             track={selectedClip.value.track}
           />
         )}
       </div>
+    </div>
+  )
+}
+
+function AssetProperties({
+  asset,
+}: {
+  asset: { id: string; name: string; type: string; duration: number; size: number; mimeType: string; fileName: string }
+}) {
+  const sizeLabel =
+    asset.size > 1024 * 1024
+      ? `${(asset.size / (1024 * 1024)).toFixed(1)} MB`
+      : `${(asset.size / 1024).toFixed(1)} KB`
+
+  return (
+    <div className="space-y-3">
+      <Section title="Asset">
+        <Property label="Name" value={asset.name} />
+        <Property label="Type" value={asset.type} />
+        <Property label="File" value={asset.fileName} />
+        <Property label="MIME" value={asset.mimeType} />
+      </Section>
+      <Section title="Properties">
+        <Property label="Duration" value={`${asset.duration.toFixed(2)}s`} />
+        <Property label="Size" value={sizeLabel} />
+      </Section>
     </div>
   )
 }

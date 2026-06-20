@@ -19,6 +19,7 @@ export type EditorTool = 'select' | 'cut' | 'trim'
 export interface ProjectStore {
   project: Project
   selectedClipIds: string[]
+  inspectedAssetId: string | null
   currentTime: number
   zoom: number
   selectedTool: EditorTool
@@ -33,6 +34,8 @@ export interface ProjectStore {
   undo: () => void
   redo: () => void
   selectClip: (clipId: string | null) => void
+  inspectAsset: (assetId: string | null) => void
+  closeInspector: () => void
   setCurrentTime: (time: number) => void
   setZoom: (zoom: number) => void
   setSelectedTool: (tool: EditorTool) => void
@@ -54,6 +57,7 @@ export const useProjectStore = create<ProjectStore>()(
   immer((set, get) => ({
     project: createDefaultProject(),
     selectedClipIds: [],
+    inspectedAssetId: null,
     currentTime: 0,
     zoom: 50,
     selectedTool: 'select',
@@ -105,15 +109,21 @@ export const useProjectStore = create<ProjectStore>()(
         if (clipId === null) {
           state.selectedClipIds = []
         } else {
-          const idx = state.selectedClipIds.indexOf(clipId)
-          if (idx === -1) {
-            state.selectedClipIds = [clipId]
-          } else {
-            state.selectedClipIds = state.selectedClipIds.filter(
-              (id) => id !== clipId,
-            )
-          }
+          state.selectedClipIds = [clipId]
         }
+      })
+    },
+
+    inspectAsset(assetId) {
+      set((state) => {
+        state.inspectedAssetId = assetId
+      })
+    },
+
+    closeInspector() {
+      set((state) => {
+        state.selectedClipIds = []
+        state.inspectedAssetId = null
       })
     },
 

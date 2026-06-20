@@ -68,9 +68,11 @@ export function ViewerPanel() {
     const player = playerRef.current
     if (!player || !hasVideo) return
     const segments = getSegments()
+    if (segments.length === 0) return
     const segment = getClipAtTime(segments, currentTime)
-    if (!segment) return
-    player.seek(currentTime)
+    const seekTime = segment ? currentTime : segments[0].timelineStart
+    if (seekTime !== currentTime) setCurrentTime(seekTime)
+    player.seek(seekTime)
   }, [clipCount])
 
   const togglePlay = useCallback(() => {

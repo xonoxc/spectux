@@ -114,6 +114,17 @@ async function exportVideo(project: ExportProject): Promise<Uint8Array> {
     reportProgress(0.05 + ((i + 1) / project.assets.length) * 0.15)
   }
 
+  const inputsWithAudio = new Set<number>()
+  for (let i = 0; i < project.assets.length; i++) {
+    logMessages.length = 0
+    await instance.exec(['-i', inputNames[i], '-f', 'null', '-', '-loglevel', 'info'])
+    const hasAudio = logMessages.some(
+      (m) => /^\s*Stream.*Audio/.test(m) || /Stream #0:.*Audio/.test(m),
+    )
+    if (hasAudio) inputsWithAudio.add(i)
+  }
+  logMessages.length = 0
+
   const videoClips = getVideoClips(project)
   const audioClips = getAudioClips(project)
 
@@ -136,16 +147,20 @@ async function exportVideo(project: ExportProject): Promise<Uint8Array> {
   const videoCount = videoClips.length
   let audioStreamCount = 0
 
+  const audioFilterNames: string[] = []
+
   for (let i = 0; i < videoClips.length; i++) {
     const clip = videoClips[i]
     const inputIdx = assetIndex.get(clip.assetId)
     if (inputIdx === undefined) continue
     if (clip.muted || clipDuration(clip) <= 0) continue
+    if (!inputsWithAudio.has(inputIdx)) continue
 
     const delay = Math.round(clip.timelineStart * 1000)
     filterParts.push(
       `[${inputIdx}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${clip.volume},atrim=start=${clip.start}:end=${clip.end},asetpts=PTS-STARTPTS,adelay=${delay}|${delay}[audV${i}]`,
     )
+    audioFilterNames.push(`[audV${i}]`)
     audioStreamCount++
   }
 
@@ -154,11 +169,13 @@ async function exportVideo(project: ExportProject): Promise<Uint8Array> {
     const inputIdx = assetIndex.get(clip.assetId)
     if (inputIdx === undefined) continue
     if (clip.muted || clipDuration(clip) <= 0) continue
+    if (!inputsWithAudio.has(inputIdx)) continue
 
     const delay = Math.round(clip.timelineStart * 1000)
     filterParts.push(
       `[${inputIdx}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${clip.volume},atrim=start=${clip.start}:end=${clip.end},asetpts=PTS-STARTPTS,adelay=${delay}|${delay}[audA${j}]`,
     )
+    audioFilterNames.push(`[audA${j}]`)
     audioStreamCount++
   }
 
@@ -168,18 +185,6 @@ async function exportVideo(project: ExportProject): Promise<Uint8Array> {
   ).join('')
 
   let filterComplex = filterParts.join(';\n')
-
-  const audioFilterNames: string[] = []
-  for (let i = 0; i < videoClips.length; i++) {
-    const clip = videoClips[i]
-    if (clip.muted || clipDuration(clip) <= 0) continue
-    audioFilterNames.push(`[audV${i}]`)
-  }
-  for (let j = 0; j < audioClips.length; j++) {
-    const clip = audioClips[j]
-    if (clip.muted || clipDuration(clip) <= 0) continue
-    audioFilterNames.push(`[audA${j}]`)
-  }
 
   if (videoCount > 0) {
     if (audioStreamCount > 0) {

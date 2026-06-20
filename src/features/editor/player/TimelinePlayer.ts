@@ -114,14 +114,16 @@ export class TimelinePlayer {
 
   play(timelineTime: number) {
     const segments = this.deps.getSegments()
+    if (segments.length === 0) return
+
     const videoSegments = segments.filter((s) => s.type === 'video')
     const segment = getClipAtTime(videoSegments, timelineTime)
     const nextSegment = segment ?? this.findNextVideoSegment(timelineTime)
-    if (!nextSegment && segments.length > 0) return
 
     this.timelineTime = timelineTime
     this.playing = true
     this.deps.onPlayState(true)
+    this.startedAudioClips.clear()
     if (segment) {
       this.ensureClipLoaded(segment, timelineTime)
     } else {
@@ -246,9 +248,6 @@ export class TimelinePlayer {
       const element = new Audio(url)
       element.volume = segment.muted ? 0 : segment.volume
 
-      const assetTime = timelineToAssetTime(segment, this.timelineTime)
-      element.currentTime = assetTime
-
       this.audioHandles.set(segment.clipId, {
         element,
         objectUrl: url,
@@ -256,9 +255,17 @@ export class TimelinePlayer {
         clipId: segment.clipId,
       })
 
-      if (this.playing) {
-        element.play().catch(() => {})
-      }
+      element.addEventListener('loadedmetadata', () => {
+        if (this.currentSegment?.clipId && !this.audioHandles.has(segment.clipId)) return
+
+        const assetTime = timelineToAssetTime(segment, this.timelineTime)
+        element.currentTime = assetTime
+
+        if (this.playing) {
+          element.play().catch(() => {})
+        }
+        this.startedAudioClips.add(segment.clipId)
+      }, { once: true })
     })
 
     this.pendingAudioLoads.set(segment.clipId, loadPromise)
@@ -381,6 +388,17 @@ export class TimelinePlayer {
   }
 
   private finishPlayback() {
+    const segments = this.deps.getSegments()
+    const hasActiveAudio = segments.some(
+      (s) => s.type === 'audio' && s.timelineEnd > this.timelineTime,
+    )
+    if (hasActiveAudio) {
+      this.currentSegment = null
+      this.video.pause()
+      if (this.playing) this.startLoop()
+      return
+    }
+
     this.playing = false
     this.loading = false
     this.lastFrameTime = null

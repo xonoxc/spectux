@@ -24,6 +24,8 @@ export type EditorEvent =
   | { type: 'TRACK_REMOVED'; trackId: string }
   | { type: 'ASSET_IMPORTED'; asset: Asset }
   | { type: 'ASSET_REMOVED'; assetId: string }
+  | { type: 'CLIP_MUTED'; clipId: string; muted: boolean }
+  | { type: 'CLIP_VOLUME_CHANGED'; clipId: string; volume: number }
   | { type: 'PROJECT_SAVED'; projectId: string }
   | { type: 'PROJECT_LOADED'; projectId: string }
   | { type: 'UNDO'; commandId: string }

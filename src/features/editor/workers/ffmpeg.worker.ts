@@ -1,8 +1,16 @@
+import { attempt } from 'shared/utils/attempt'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { toBlobURL } from '@ffmpeg/util'
 import { expose } from 'comlink'
 
 let ffmpeg: FFmpeg | null = null
+
+function reportProgress(progress: number) {
+  self.postMessage({
+    type: 'progress',
+    progress: Math.max(0, Math.min(1, progress)),
+  })
+}
 
 async function getFFmpeg(): Promise<FFmpeg> {
   if (!ffmpeg) {
@@ -16,6 +24,9 @@ export interface ExportClip {
   start: number
   end: number
   timelineStart: number
+  muted: boolean
+  volume: number
+  type: 'video' | 'audio'
 }
 
 export interface ExportTrack {
@@ -46,7 +57,15 @@ function getVideoClips(project: ExportProject): ExportClip[] {
   return project.tracks
     .filter((track) => track.type === 'video')
     .flatMap((track) => track.clips)
-    .filter((clip) => clipDuration(clip) > 0)
+    .filter((clip) => clip.type === 'video' && clipDuration(clip) > 0)
+    .sort((a, b) => a.timelineStart - b.timelineStart)
+}
+
+function getAudioClips(project: ExportProject): ExportClip[] {
+  return project.tracks
+    .filter((track) => track.type === 'audio')
+    .flatMap((track) => track.clips)
+    .filter((clip) => clip.type === 'audio' && clipDuration(clip) > 0)
     .sort((a, b) => a.timelineStart - b.timelineStart)
 }
 
@@ -68,10 +87,15 @@ async function load() {
 async function exportVideo(project: ExportProject): Promise<Uint8Array> {
   const instance = await getFFmpeg()
   await load()
+  reportProgress(0.05)
 
-  try {
-    await instance.deleteFile('output.mp4')
-  } catch {}
+  await attempt(instance.deleteFile('output.mp4'))
+
+  const logMessages: string[] = []
+  instance.on('log', ({ message }) => {
+    logMessages.push(message)
+    if (logMessages.length > 200) logMessages.shift()
+  })
 
   const inputNames: string[] = []
   const assetIndex = new Map<string, number>()
@@ -87,56 +111,125 @@ async function exportVideo(project: ExportProject): Promise<Uint8Array> {
       inputNames[i],
       new Uint8Array(project.assets[i].blob),
     )
+    reportProgress(0.05 + ((i + 1) / project.assets.length) * 0.15)
   }
 
-  const filterParts: string[] = []
-  const clips = getVideoClips(project)
+  const videoClips = getVideoClips(project)
+  const audioClips = getAudioClips(project)
 
-  for (let i = 0; i < clips.length; i++) {
-    const clip = clips[i]
-    const inputIdx = assetIndex.get(clip.assetId)
-    if (inputIdx === undefined) continue
-    filterParts.push(
-      `[${inputIdx}:v]trim=start=${clip.start}:end=${clip.end},setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p[seg${i}]`,
-    )
-  }
-
-  if (filterParts.length === 0) {
+  if (videoClips.length === 0) {
     throw new Error('No video clips to export')
   }
 
+  const filterParts: string[] = []
+
+  for (let i = 0; i < videoClips.length; i++) {
+    const clip = videoClips[i]
+    const inputIdx = assetIndex.get(clip.assetId)
+    if (inputIdx === undefined) continue
+
+    filterParts.push(
+      `[${inputIdx}:v]trim=start=${clip.start}:end=${clip.end},setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p[segV${i}]`,
+    )
+  }
+
+  const videoCount = videoClips.length
+  let audioStreamCount = 0
+
+  for (let i = 0; i < videoClips.length; i++) {
+    const clip = videoClips[i]
+    const inputIdx = assetIndex.get(clip.assetId)
+    if (inputIdx === undefined) continue
+    if (clip.muted || clipDuration(clip) <= 0) continue
+
+    const delay = Math.round(clip.timelineStart * 1000)
+    filterParts.push(
+      `[${inputIdx}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${clip.volume},atrim=start=${clip.start}:end=${clip.end},asetpts=PTS-STARTPTS,adelay=${delay}|${delay}[audV${i}]`,
+    )
+    audioStreamCount++
+  }
+
+  for (let j = 0; j < audioClips.length; j++) {
+    const clip = audioClips[j]
+    const inputIdx = assetIndex.get(clip.assetId)
+    if (inputIdx === undefined) continue
+    if (clip.muted || clipDuration(clip) <= 0) continue
+
+    const delay = Math.round(clip.timelineStart * 1000)
+    filterParts.push(
+      `[${inputIdx}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${clip.volume},atrim=start=${clip.start}:end=${clip.end},asetpts=PTS-STARTPTS,adelay=${delay}|${delay}[audA${j}]`,
+    )
+    audioStreamCount++
+  }
+
   const concatInputs = Array.from(
-    { length: filterParts.length },
-    (_, i) => `[seg${i}]`,
+    { length: videoCount },
+    (_, i) => `[segV${i}]`,
   ).join('')
-  const filterComplex = filterParts.join(';\n')
+
+  let filterComplex = filterParts.join(';\n')
+
+  const audioFilterNames: string[] = []
+  for (let i = 0; i < videoClips.length; i++) {
+    const clip = videoClips[i]
+    if (clip.muted || clipDuration(clip) <= 0) continue
+    audioFilterNames.push(`[audV${i}]`)
+  }
+  for (let j = 0; j < audioClips.length; j++) {
+    const clip = audioClips[j]
+    if (clip.muted || clipDuration(clip) <= 0) continue
+    audioFilterNames.push(`[audA${j}]`)
+  }
+
+  if (videoCount > 0) {
+    if (audioStreamCount > 0) {
+      filterComplex += `;\n${concatInputs}concat=n=${videoCount}:v=1:a=0[outv]`
+      const mixInputs = audioFilterNames.join('')
+      filterComplex += `;\n${mixInputs}amix=inputs=${audioStreamCount}:duration=longest:dropout_transition=0[outa]`
+    } else {
+      filterComplex += `;\n${concatInputs}concat=n=${videoCount}:v=1:a=0[outv]`
+    }
+  }
 
   const args = [
     ...inputNames.flatMap((name) => ['-i', name]),
     '-filter_complex',
-    `${filterComplex};${concatInputs}concat=n=${filterParts.length}:v=1:a=0[out]`,
+    filterComplex,
     '-map',
-    '[out]',
-    '-an',
+    '[outv]',
+  ]
+
+  if (audioStreamCount > 0) {
+    args.push('-map', '[outa]', '-c:a', 'aac', '-b:a', '192k')
+  } else {
+    args.push('-an')
+  }
+
+  args.push(
     '-c:v',
     'libx264',
     '-preset',
     'ultrafast',
     '-movflags',
     '+faststart',
+    '-loglevel',
+    'warning',
     '-y',
     'output.mp4',
-  ]
+  )
 
   instance.on('progress', ({ progress }) => {
     if (typeof progress === 'number') {
-      self.postMessage({ type: 'progress', progress })
+      reportProgress(0.2 + progress * 0.75)
     }
   })
 
+  reportProgress(0.2)
   const exitCode = await instance.exec(args)
+
   if (exitCode !== 0) {
-    throw new Error(`FFmpeg export failed with exit code ${exitCode}`)
+    const lastLogs = logMessages.slice(-30).join('\n')
+    throw new Error(`FFmpeg exit code ${exitCode}.\n${lastLogs}`)
   }
 
   const data = await instance.readFile('output.mp4')
@@ -146,6 +239,7 @@ async function exportVideo(project: ExportProject): Promise<Uint8Array> {
   if (data.byteLength === 0) {
     throw new Error('FFmpeg produced an empty output file')
   }
+  reportProgress(1)
   return data
 }
 

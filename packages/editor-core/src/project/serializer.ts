@@ -1,8 +1,10 @@
 import { err, ok } from 'neverthrow'
-import type { Result } from 'neverthrow'
 import { z } from 'zod'
+
+import type { Result } from 'neverthrow'
 import type { Project } from './Project'
 import type { EditorError } from '../errors/errors'
+import { attemptSync } from 'shared/utils/attempt'
 
 const EffectSchema = z.object({
   id: z.string(),
@@ -13,9 +15,12 @@ const EffectSchema = z.object({
 const ClipSchema = z.object({
   id: z.string(),
   assetId: z.string(),
+  type: z.enum(['video', 'audio']).default('video'),
   start: z.number().min(0),
   end: z.number().min(0),
   timelineStart: z.number().min(0),
+  muted: z.boolean().default(false),
+  volume: z.number().min(0).max(2).default(1),
   effects: z.array(EffectSchema),
 })
 
@@ -23,6 +28,8 @@ const TrackSchema = z.object({
   id: z.string(),
   type: z.enum(['video', 'audio']),
   clips: z.array(ClipSchema),
+  muted: z.boolean().default(false),
+  volume: z.number().min(0).max(2).default(1),
 })
 
 const AssetSchema = z.object(
@@ -57,25 +64,24 @@ export function serializeProject(project: Project): string {
 }
 
 export function deserializeProject(json: string): Result<Project, EditorError> {
-  try {
-    const parsed = JSON.parse(json)
-    const result = ProjectSchema.safeParse(parsed)
-
-    if (!result.success) {
-      const issue = result.error.issues[0]
-      return err({
-        type: 'PROJECT.INVALID_DATA',
-        path: issue.path.join('.'),
-        reason: issue.message,
-      })
-    }
-
-    return ok(result.data)
-  } catch {
+  const parsedRes = attemptSync(() => JSON.parse(json))
+  if (parsedRes.isErr()) {
     return err({
       type: 'PROJECT.INVALID_DATA',
       path: 'root',
       reason: 'Invalid JSON',
     })
   }
+
+  const result = ProjectSchema.safeParse(parsedRes.value)
+  if (!result.success) {
+    const issue = result.error.issues[0]
+    return err({
+      type: 'PROJECT.INVALID_DATA',
+      path: issue.path.join('.'),
+      reason: issue.message,
+    })
+  }
+
+  return ok(result.data)
 }

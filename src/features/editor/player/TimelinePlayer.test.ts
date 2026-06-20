@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   getClipAtTime,
   getNextClipAfterTime,
-  timelineToAssetTime
-  
+  timelineToAssetTime,
 } from './TimelinePlayer'
-import type {ClipSegment} from './TimelinePlayer';
+import type { ClipSegment } from './TimelinePlayer'
 
 const segments: ClipSegment[] = [
   {
@@ -15,6 +14,9 @@ const segments: ClipSegment[] = [
     timelineEnd: 9,
     assetStart: 0,
     assetEnd: 9,
+    type: 'video',
+    muted: false,
+    volume: 1,
   },
   {
     clipId: 'clip-b',
@@ -23,6 +25,9 @@ const segments: ClipSegment[] = [
     timelineEnd: 18,
     assetStart: 9,
     assetEnd: 18,
+    type: 'video',
+    muted: false,
+    volume: 1,
   },
 ]
 

@@ -37,6 +37,7 @@ export function TopBar() {
     setExportError(null)
 
     const renderer = createFFmpegRenderer()
+    renderer.onProgress(setExportProgress)
     rendererRef.current = renderer
 
     try {

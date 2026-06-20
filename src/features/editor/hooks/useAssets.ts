@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listProjectAssets, saveAssetBlob, loadAssetBlob } from '../store/db'
+import {
+  deleteAssetBlob,
+  listProjectAssets,
+  saveAssetBlob,
+  loadAssetBlob,
+} from '../store/db'
 import type { Asset } from '~'
 
 const assetKeys = {
@@ -38,6 +43,25 @@ export function useImportAsset() {
     onSuccess: (_asset, variables) => {
       queryClient.invalidateQueries({
         queryKey: assetKeys.forProject(variables.projectId),
+      })
+    },
+  })
+}
+
+export function useRemoveAsset() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: { assetId: string; projectId: string }) => {
+      await deleteAssetBlob(params.assetId)
+      return params.assetId
+    },
+    onSuccess: (_assetId, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: assetKeys.forProject(variables.projectId),
+      })
+      queryClient.removeQueries({
+        queryKey: assetKeys.detail(variables.assetId),
       })
     },
   })

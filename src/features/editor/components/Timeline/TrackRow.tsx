@@ -31,6 +31,7 @@ export function TrackRow({
   }, [assets])
   const rowRef = useRef<HTMLDivElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const isAudio = track.type === 'audio'
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -64,9 +65,12 @@ export function TrackRow({
       const clip = {
         id: clipId,
         assetId,
+        type: isAudio ? 'audio' as const : 'video' as const,
         start: 0,
         end: Math.min(assetDuration, 30),
         timelineStart,
+        muted: false,
+        volume: 1,
         effects: [],
       }
 
@@ -111,7 +115,7 @@ export function TrackRow({
         })
       }
     },
-    [track, pixelsPerSecond],
+    [track, pixelsPerSecond, isAudio],
   )
 
   const handleRowClick = useCallback((e: React.MouseEvent) => {
@@ -120,13 +124,17 @@ export function TrackRow({
     useProjectStore.getState().selectClip(null)
   }, [])
 
+  const bgClass = isDragOver
+    ? isAudio ? 'bg-emerald-950/30' : 'bg-blue-950/30'
+    : isAudio
+      ? 'bg-neutral-950/80'
+      : 'bg-neutral-950'
+
   return (
     <div
       ref={rowRef}
       data-track-id={track.id}
-      className={`relative border-b border-neutral-800 transition-colors ${
-        isDragOver ? 'bg-blue-950/30' : 'bg-neutral-950'
-      }`}
+      className={`relative border-b border-neutral-800 transition-colors ${bgClass}`}
       style={{ height: trackHeight }}
       onClick={handleRowClick}
       onDragOver={handleDragOver}
@@ -137,8 +145,8 @@ export function TrackRow({
         className="absolute left-0 top-0 flex h-full w-[120px] items-center border-r border-neutral-800 bg-neutral-900 px-2"
         style={{ marginLeft: -120 }}
       >
-        <span className="truncate text-[10px] font-medium uppercase text-neutral-500">
-          {track.type === 'video' ? `V${trackIndex + 1}` : `A${trackIndex + 1}`}
+        <span className={`truncate text-[10px] font-medium uppercase ${isAudio ? 'text-emerald-500' : 'text-neutral-500'}`}>
+          {isAudio ? `A${trackIndex + 1}` : `V${trackIndex + 1}`}
         </span>
       </div>
 

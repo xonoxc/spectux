@@ -4,6 +4,8 @@ import {
   createMoveClipCommand,
   createDeleteClipCommand,
   createTrimClipCommand,
+  createMuteClipCommand,
+  createChangeVolumeCommand,
 } from '~'
 
 export function buildSplitClip(clipId: string, splitTime: number): Command {
@@ -32,4 +34,12 @@ export function buildTrimClip(
   newEnd: number,
 ): Command {
   return createTrimClipCommand({ clipId, newStart, newEnd })
+}
+
+export function buildMuteClip(clipId: string, muted: boolean): Command {
+  return createMuteClipCommand({ clipId, muted })
+}
+
+export function buildChangeVolume(clipId: string, volume: number): Command {
+  return createChangeVolumeCommand({ clipId, volume })
 }

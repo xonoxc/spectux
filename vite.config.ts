@@ -14,6 +14,7 @@ const config = defineConfig({
     tsconfigPaths: true,
     alias: {
       '~': path.resolve(process.cwd(), 'packages/editor-core/src'),
+      'shared': path.resolve(process.cwd(), 'shared'),
     },
   },
   plugins: [

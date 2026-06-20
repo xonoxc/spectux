@@ -42,5 +42,9 @@ export {
   createDeleteClipCommand,
   createTrimClipCommand,
 } from './commands'
+export {
+  createMuteClipCommand,
+  createChangeVolumeCommand,
+} from './commands'
 export type { EditorError } from './errors/errors'
 export type { EditorEvent } from './events/EditorEvent'

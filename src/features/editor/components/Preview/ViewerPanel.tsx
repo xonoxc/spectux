@@ -14,10 +14,13 @@ function getSegments(): ClipSegment[] {
       segments.push({
         clipId: clip.id,
         assetId: clip.assetId,
+        type: clip.type,
         timelineStart: clip.timelineStart,
         timelineEnd: clipEndTime(clip),
         assetStart: clip.start,
         assetEnd: clip.end,
+        muted: clip.muted,
+        volume: clip.volume,
       })
     }
   }

@@ -10,6 +10,8 @@ export interface Track {
   id: string
   type: TrackType
   clips: Clip[]
+  muted: boolean
+  volume: number
 }
 
 export function createTrack(params: { id: string; type: TrackType }): Track {
@@ -17,6 +19,8 @@ export function createTrack(params: { id: string; type: TrackType }): Track {
     id: params.id,
     type: params.type,
     clips: [],
+    muted: false,
+    volume: 1,
   }
 }
 

@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { useProjectStore } from '../../store/project.store'
-import { useImportAsset } from '../../hooks/useAssets'
+import { useImportAsset, useRemoveAsset } from '../../hooks/useAssets'
 import { nanoid } from 'nanoid'
-import { Upload, Film, Music, Image, MoreVertical } from 'lucide-react'
+import { Upload, Film, Music, Image, MoreVertical, Trash2 } from 'lucide-react'
 import { ok } from 'neverthrow'
 import { addClip } from '~'
 import type { Asset } from '~'
@@ -17,6 +17,34 @@ const TYPE_ICONS = { video: Film, audio: Music, image: Image } as const
 
 function AssetThumbnail({ asset }: { asset: Asset }) {
   const Icon = TYPE_ICONS[asset.type]
+
+  if (asset.type === 'audio') {
+    return (
+      <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded bg-emerald-950/40">
+        <div className="flex items-center gap-0.5">
+          {'▂▄▆█▆▄▂'.split('').map((ch, i) => (
+            <span
+              key={i}
+              className="text-emerald-500/60"
+              style={{ fontSize: `${6 + Math.random() * 6}px` }}
+            >
+              {ch}
+            </span>
+          ))}
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-1 pb-0.5">
+          <div className="rounded bg-black/60 p-0.5">
+            <Icon size={10} className="text-emerald-300" />
+          </div>
+          {asset.duration > 0 && (
+            <span className="rounded bg-black/60 px-1 py-0.5 font-mono text-[9px] text-neutral-300">
+              {formatDuration(asset.duration)}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="relative aspect-video overflow-hidden rounded bg-neutral-800">
@@ -51,15 +79,25 @@ export function MediaPanel() {
   const projectId = useProjectStore((s) => s.project.id)
   const projectAssets = useProjectStore((s) => s.project.assets)
   const importAsset = useImportAsset()
+  const removeAsset = useRemoveAsset()
   const [menuAssetId, setMenuAssetId] = useState<string | null>(null)
+
+  async function handleRemoveAsset(assetId: string) {
+    useProjectStore.getState().removeAsset(assetId)
+    setMenuAssetId(null)
+    await removeAsset.mutateAsync({ assetId, projectId })
+  }
 
   function appendToTimeline(asset: Asset) {
     const store = useProjectStore.getState()
     const tracks = store.project.timeline.tracks
-    const videoTrack = tracks.find((t) => t.type === 'video')
-    if (!videoTrack) return
+    const isAudio = asset.type === 'audio'
+    const targetTrack = tracks.find(
+      (t) => t.type === (isAudio ? 'audio' : 'video'),
+    )
+    if (!targetTrack) return
 
-    const endTime = videoTrack.clips.reduce(
+    const endTime = targetTrack.clips.reduce(
       (max, c) => Math.max(max, c.timelineStart + (c.end - c.start)),
       0,
     )
@@ -68,19 +106,22 @@ export function MediaPanel() {
     const clip = {
       id: clipId,
       assetId: asset.id,
+      type: isAudio ? ('audio' as const) : ('video' as const),
       start: 0,
       end: Math.min(asset.duration || 10, 30),
       timelineStart: endTime,
+      muted: false,
+      volume: 1,
       effects: [],
     }
 
-    const result = addClip(videoTrack, clip)
+    const result = addClip(targetTrack, clip)
     if (result.isOk()) {
       store.executeCommand({
         type: 'ADD_CLIP',
         execute(p) {
           const newTracks = p.timeline.tracks.map((t) =>
-            t.id === videoTrack.id
+            t.id === targetTrack.id
               ? {
                   ...t,
                   clips: [...t.clips, clip].sort(
@@ -97,7 +138,7 @@ export function MediaPanel() {
         },
         undo(p) {
           const newTracks = p.timeline.tracks.map((t) =>
-            t.id === videoTrack.id
+            t.id === targetTrack.id
               ? { ...t, clips: t.clips.filter((c) => c.id !== clipId) }
               : t,
           )
@@ -108,7 +149,7 @@ export function MediaPanel() {
           })
         },
         emitEvent() {
-          return { type: 'CLIP_ADDED', clip, trackId: videoTrack.id } as const
+          return { type: 'CLIP_ADDED', clip, trackId: targetTrack.id } as const
         },
       })
     }
@@ -242,8 +283,7 @@ export function MediaPanel() {
           <div
             className="grid gap-1"
             style={{
-              gridTemplateColumns:
-                'repeat(auto-fill, minmax(90px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
             }}
           >
             {projectAssets.map((asset) => (
@@ -274,7 +314,9 @@ export function MediaPanel() {
                       setMenuAssetId(menuAssetId === asset.id ? null : asset.id)
                     }}
                     className="rounded bg-black/50 p-0.5 text-neutral-300 opacity-0 transition-opacity hover:bg-black/70 group-hover:opacity-100"
-                    style={{ opacity: menuAssetId === asset.id ? 1 : undefined }}
+                    style={{
+                      opacity: menuAssetId === asset.id ? 1 : undefined,
+                    }}
                     title="More"
                   >
                     <MoreVertical size={10} />
@@ -295,6 +337,16 @@ export function MediaPanel() {
                           className="flex w-full items-center px-3 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
                         >
                           Inspect
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void handleRemoveAsset(asset.id)
+                          }}
+                          className="flex w-full items-center gap-1.5 px-3 py-1 text-xs text-red-300 hover:bg-red-950/40"
+                        >
+                          <Trash2 size={11} />
+                          Remove
                         </button>
                       </div>
                     </>

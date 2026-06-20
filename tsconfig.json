@@ -14,7 +14,9 @@
     "paths": {
       "#/*": ["./src/*"],
       "@/*": ["./src/*"],
-      "~/*": ["./packages/editor-core/src/*"]
+      "~": ["./packages/editor-core/src/index.ts"],
+      "~/*": ["./packages/editor-core/src/*"],
+      "shared/*": ["./shared/*"]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],

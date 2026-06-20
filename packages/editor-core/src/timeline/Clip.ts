@@ -5,9 +5,12 @@ import type { Result } from 'neverthrow'
 export interface Clip {
   id: string
   assetId: string
+  type: 'video' | 'audio'
+  timelineStart: number
   start: number
   end: number
-  timelineStart: number
+  muted: boolean
+  volume: number
   effects: Effect[]
 }
 
@@ -20,6 +23,7 @@ export interface Effect {
 export function createClip(params: {
   id: string
   assetId: string
+  type?: 'video' | 'audio'
   start: number
   end: number
   timelineStart: number
@@ -27,9 +31,12 @@ export function createClip(params: {
   return {
     id: params.id,
     assetId: params.assetId,
+    type: params.type ?? 'video',
     start: params.start,
     end: params.end,
     timelineStart: params.timelineStart,
+    muted: false,
+    volume: 1,
     effects: [],
   }
 }

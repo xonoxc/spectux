@@ -1,15 +1,27 @@
 import { useCallback, useRef, useState } from 'react'
 import type { Clip } from '~'
 import { useProjectStore } from '../../store/project.store'
-import { buildMoveClip, buildTrimClip } from '../../renderer/CommandBuilder'
+import {
+  buildDeleteClip,
+  buildMoveClip,
+  buildTrimClip,
+} from '../../renderer/CommandBuilder'
+import { createMuteClipCommand } from '~'
+import { Trash2, Volume2, VolumeX } from 'lucide-react'
 
 function clipEnd(c: Clip) {
   return c.timelineStart + (c.end - c.start)
 }
 
-function findSnapPosition(clipId: string, desiredStart: number, duration: number): number {
+function findSnapPosition(
+  clipId: string,
+  desiredStart: number,
+  duration: number,
+): number {
   const { project } = useProjectStore.getState()
-  const track = project.timeline.tracks.find((t) => t.clips.some((c) => c.id === clipId))
+  const track = project.timeline.tracks.find((t) =>
+    t.clips.some((c) => c.id === clipId),
+  )
   if (!track) return Math.max(0, desiredStart)
 
   const others = track.clips
@@ -180,13 +192,38 @@ export function ClipItem({
     [clip.id, clip.start, clip.end, pixelsPerSecond],
   )
 
+  const handleMute = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+      const command = createMuteClipCommand({
+        clipId: clip.id,
+        muted: !clip.muted,
+      })
+      useProjectStore.getState().executeCommand(command)
+    },
+    [clip.id, clip.muted],
+  )
+
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+      const command = buildDeleteClip(clip.id)
+      useProjectStore.getState().executeCommand(command)
+    },
+    [clip.id],
+  )
+
   return (
     <div
       data-clip-id={clip.id}
-      className={`absolute top-1 rounded border text-xs transition-shadow ${
+      className={`group absolute top-1 rounded border text-xs transition-shadow ${
         isSelected
           ? 'z-10 border-blue-500 bg-blue-900/40 shadow-lg shadow-blue-500/10'
-          : 'z-0 border-neutral-700 bg-neutral-800 hover:border-neutral-600'
+          : clip.type === 'audio'
+            ? 'z-0 border-emerald-700 bg-emerald-900/30 hover:border-emerald-600'
+            : 'z-0 border-neutral-700 bg-neutral-800 hover:border-neutral-600'
       }`}
       style={{
         left: baseX,
@@ -203,10 +240,38 @@ export function ClipItem({
         style={{ width: HANDLE_WIDTH }}
         onMouseDown={handleTrimStart}
       />
-      <div className="flex h-full items-center px-2">
-        <span className="truncate text-[10px] text-neutral-300">
+      <div className="flex h-full items-center gap-1 px-2">
+        {clip.type === 'audio' && (
+          <span className="flex items-center gap-0.5 text-emerald-400/50">
+            {'▂▄▆█▆▄▂'.split('').map((ch, i) => (
+              <span key={i} className="text-[6px] leading-none">
+                {ch}
+              </span>
+            ))}
+          </span>
+        )}
+        <span
+          className={`truncate ${clip.type === 'audio' ? 'text-[10px] text-emerald-300/70' : 'text-[10px] text-neutral-300'}`}
+        >
           {assetName}
         </span>
+      </div>
+      <div className="absolute right-1 top-1/2 flex -translate-y-1/2 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <button
+          onClick={handleMute}
+          className="rounded bg-black/60 p-0.5 text-neutral-300 hover:bg-black/80"
+          title={clip.muted ? 'Unmute' : 'Mute'}
+          style={{ opacity: clip.muted ? 1 : undefined }}
+        >
+          {clip.muted ? <VolumeX size={10} /> : <Volume2 size={10} />}
+        </button>
+        <button
+          onClick={handleDelete}
+          className="rounded bg-black/60 p-0.5 text-neutral-300 hover:bg-red-900/80 hover:text-red-100"
+          title="Delete clip"
+        >
+          <Trash2 size={10} />
+        </button>
       </div>
       <div
         className="absolute right-0 top-0 h-full cursor-col-resize hover:bg-blue-500/30"

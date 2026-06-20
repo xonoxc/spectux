@@ -1,16 +1,7 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
-import {
-  createCommandManager,
-  createProject,
-  addTrack,
-} from '~'
-import type {
-  CommandManager,
-  Project,
-  Command,
-  EditorError,
-} from '~'
+import { createCommandManager, createProject, addTrack } from '~'
+import type { CommandManager, Project, Command, EditorError } from '~'
 import { nanoid } from 'nanoid'
 import type { Result } from 'neverthrow'
 
@@ -35,6 +26,7 @@ export interface ProjectStore {
   redo: () => void
   selectClip: (clipId: string | null) => void
   inspectAsset: (assetId: string | null) => void
+  removeAsset: (assetId: string) => void
   closeInspector: () => void
   setCurrentTime: (time: number) => void
   setZoom: (zoom: number) => void
@@ -46,11 +38,12 @@ export interface ProjectStore {
 
 function createDefaultProject(): Project {
   const project = createProject({ id: nanoid(), name: 'Untitled Project' })
-  const withTrack = addTrack(project.timeline, 'video', 'track-1')
-  if (withTrack.isOk()) {
-    return { ...project, timeline: withTrack.value }
-  }
-  return project
+  let timeline = project.timeline
+  const v = addTrack(timeline, 'video', 'track-v1')
+  if (v.isOk()) timeline = v.value
+  const a = addTrack(timeline, 'audio', 'track-a1')
+  if (a.isOk()) timeline = a.value
+  return { ...project, timeline }
 }
 
 export const useProjectStore = create<ProjectStore>()(
@@ -117,6 +110,30 @@ export const useProjectStore = create<ProjectStore>()(
     inspectAsset(assetId) {
       set((state) => {
         state.inspectedAssetId = assetId
+      })
+    },
+
+    removeAsset(assetId) {
+      set((state) => {
+        state.project.assets = state.project.assets.filter(
+          (asset) => asset.id !== assetId,
+        )
+        state.project.timeline.tracks = state.project.timeline.tracks.map(
+          (track) => ({
+            ...track,
+            clips: track.clips.filter((clip) => clip.assetId !== assetId),
+          }),
+        )
+        state.selectedClipIds = state.selectedClipIds.filter((clipId) =>
+          state.project.timeline.tracks.some((track) =>
+            track.clips.some((clip) => clip.id === clipId),
+          ),
+        )
+        if (state.inspectedAssetId === assetId) {
+          state.inspectedAssetId = null
+        }
+        state.project.updatedAt = Date.now()
+        state.isDirty = true
       })
     },
 

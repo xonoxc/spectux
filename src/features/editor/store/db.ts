@@ -79,6 +79,10 @@ export async function loadAssetBlob(assetId: string): Promise<Blob | null> {
   return record.blob
 }
 
+export async function deleteAssetBlob(assetId: string): Promise<void> {
+  await db.assets.delete(assetId)
+}
+
 export async function listProjects(): Promise<ProjectRecord[]> {
   return db.projects.orderBy('updatedAt').reverse().toArray()
 }

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import type { Clip } from '#/../packages/editor-core/src'
+import type { Clip } from '~'
 import { useProjectStore } from '../../store/project.store'
 import { buildMoveClip, buildTrimClip } from '../../renderer/CommandBuilder'
 

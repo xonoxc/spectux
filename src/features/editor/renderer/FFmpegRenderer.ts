@@ -4,7 +4,7 @@ import { loadAssetBlob } from '../store/db'
 
 import type { Result } from 'neverthrow'
 import type { Remote } from 'comlink'
-import type { Project, EditorError } from '#/../packages/editor-core/src'
+import type { Project, EditorError } from '~'
 import type { FFmpegWorker } from '../workers/ffmpeg.worker'
 
 export interface Renderer {

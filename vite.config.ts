@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import path from 'node:path'
 import { devtools } from '@tanstack/devtools-vite'
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
@@ -9,7 +10,12 @@ import { nitro } from 'nitro/vite'
 import babel from '@rolldown/plugin-babel'
 
 const config = defineConfig({
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    alias: {
+      '~': path.resolve(process.cwd(), 'packages/editor-core/src'),
+    },
+  },
   plugins: [
     devtools(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),

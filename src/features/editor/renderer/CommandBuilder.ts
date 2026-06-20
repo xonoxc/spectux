@@ -1,10 +1,10 @@
-import type { Command } from '#/../packages/editor-core/src'
+import type { Command } from '~'
 import {
   createSplitClipCommand,
   createMoveClipCommand,
   createDeleteClipCommand,
   createTrimClipCommand,
-} from '#/../packages/editor-core/src'
+} from '~'
 
 export function buildSplitClip(clipId: string, splitTime: number): Command {
   return createSplitClipCommand({ clipId, splitTime })

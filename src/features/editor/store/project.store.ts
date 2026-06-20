@@ -4,13 +4,13 @@ import {
   createCommandManager,
   createProject,
   addTrack,
-} from '#/../packages/editor-core/src'
+} from '~'
 import type {
   CommandManager,
   Project,
   Command,
   EditorError,
-} from '#/../packages/editor-core/src'
+} from '~'
 import { nanoid } from 'nanoid'
 import type { Result } from 'neverthrow'
 

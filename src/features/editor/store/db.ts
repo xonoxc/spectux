@@ -1,6 +1,6 @@
 import Dexie from 'dexie'
 import type { Table } from 'dexie'
-import type { Project, Asset } from '#/../packages/editor-core/src'
+import type { Project, Asset } from '~'
 
 export interface ProjectRecord {
   id: string

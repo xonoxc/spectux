@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState, useMemo } from 'react'
-import type { Track as TrackModel, Asset } from '#/../packages/editor-core/src'
+import type { Track as TrackModel, Asset } from '~'
 import { ClipItem } from './ClipItem'
 import { useProjectStore } from '../../store/project.store'
-import { addClip } from '#/../packages/editor-core/src'
+import { addClip } from '~'
 import { ok } from 'neverthrow'
 import { nanoid } from 'nanoid'
 

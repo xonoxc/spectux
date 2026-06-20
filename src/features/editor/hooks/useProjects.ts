@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listProjects, saveProject, loadProject } from '../store/db'
-import type { Project } from '#/../packages/editor-core/src'
+import type { Project } from '~'
 
 const projectKeys = {
   all: ['projects'] as const,

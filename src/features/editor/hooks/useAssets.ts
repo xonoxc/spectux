@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listProjectAssets, saveAssetBlob, loadAssetBlob } from '../store/db'
-import type { Asset } from '#/../packages/editor-core/src'
+import type { Asset } from '~'
 
 const assetKeys = {
   forProject: (projectId: string) => ['assets', 'project', projectId] as const,

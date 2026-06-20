@@ -1,5 +1,5 @@
 import { useProjectStore } from '../../store/project.store'
-import { findClip } from '#/../packages/editor-core/src'
+import { findClip } from '~'
 
 export function InspectorPanel() {
   const project = useProjectStore((s) => s.project)

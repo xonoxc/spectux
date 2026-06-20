@@ -4,7 +4,7 @@ import { useImportAsset } from '../../hooks/useAssets'
 import { nanoid } from 'nanoid'
 import { Upload, Film, Music, Image } from 'lucide-react'
 import { ok } from 'neverthrow'
-import type { Asset } from '#/../packages/editor-core/src'
+import type { Asset } from '~'
 
 export function MediaPanel() {
   const inputRef = useRef<HTMLInputElement>(null)

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useProjectStore } from '../../store/project.store'
 import { loadAssetBlob } from '../../store/db'
-import { clipEndTime } from '#/../packages/editor-core/src'
+import { clipEndTime } from '~'
 import type { ClipSegment } from '../../player/TimelinePlayer'
 import { TimelinePlayer, getClipAtTime } from '../../player/TimelinePlayer'
 import { Play, Pause } from 'lucide-react'

@@ -118,8 +118,6 @@ export class TimelinePlayer {
 
     const videoSegments = segments.filter((s) => s.type === 'video')
     const segment = getClipAtTime(videoSegments, timelineTime)
-    const nextSegment = segment ?? this.findNextVideoSegment(timelineTime)
-
     this.timelineTime = timelineTime
     this.playing = true
     this.deps.onPlayState(true)

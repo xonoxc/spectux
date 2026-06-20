@@ -1,24 +1,61 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState } from 'react'
+import { useSelector } from '@xstate/react'
 import { useProjectStore } from '../../store/project.store'
 import { useSaveProject } from '../../hooks/useProjects'
-import { createFFmpegRenderer } from '../../renderer/FFmpegRenderer'
-import { Save, Video, Undo2, Redo2, Loader2, Download } from 'lucide-react'
+import { Save, Video, Undo2, Redo2, Pencil } from 'lucide-react'
+import type { ActorRef } from 'xstate'
 
-type ExportState = 'idle' | 'exporting' | 'done' | 'error'
+interface TopBarProps {
+  actor: ActorRef<any, any>
+}
 
-export function TopBar() {
+export function TopBar({ actor }: TopBarProps) {
   const project = useProjectStore((s) => s.project)
   const isDirty = useProjectStore((s) => s.isDirty)
   const undo = useProjectStore((s) => s.undo)
   const redo = useProjectStore((s) => s.redo)
+  const setProjectName = useProjectStore((s) => s.setProjectName)
   const saveMutation = useSaveProject()
 
-  const [exportState, setExportState] = useState<ExportState>('idle')
-  const [exportProgress, setExportProgress] = useState(0)
-  const [exportError, setExportError] = useState<string | null>(null)
-  const rendererRef = useRef<ReturnType<typeof createFFmpegRenderer> | null>(
-    null,
-  )
+  const exportState = useSelector(actor, (s) => (s as { value: string }).value)
+  const isExporting = exportState === 'preparing' || exportState === 'encoding'
+
+  const [showRenameDialog, setShowRenameDialog] = useState(false)
+  const [renameDraft, setRenameDraft] = useState(project.name)
+
+  const [showExportNamePrompt, setShowExportNamePrompt] = useState(false)
+  const [exportNameDraft, setExportNameDraft] = useState(project.name)
+
+  function openRename() {
+    setRenameDraft(project.name)
+    setShowRenameDialog(true)
+  }
+
+  function commitRename() {
+    const trimmed = renameDraft.trim()
+    if (trimmed && trimmed !== project.name) {
+      setProjectName(trimmed)
+    }
+    setShowRenameDialog(false)
+  }
+
+  function handleExport() {
+    if (project.name === 'Untitled Project') {
+      setExportNameDraft(project.name)
+      setShowExportNamePrompt(true)
+    } else {
+      actor.send({ type: 'START_EXPORT' })
+    }
+  }
+
+  function commitExportName() {
+    const trimmed = exportNameDraft.trim()
+    if (trimmed) {
+      setProjectName(trimmed)
+    }
+    setShowExportNamePrompt(false)
+    actor.send({ type: 'START_EXPORT' })
+  }
 
   function handleSave() {
     saveMutation.mutate(project, {
@@ -28,91 +65,6 @@ export function TopBar() {
     })
   }
 
-  const handleExport = useCallback(async () => {
-    const hasClips = project.timeline.tracks.some((t) => t.clips.length > 0)
-    if (!hasClips) return
-
-    setExportState('exporting')
-    setExportProgress(0)
-    setExportError(null)
-
-    const renderer = createFFmpegRenderer()
-    renderer.onProgress(setExportProgress)
-    rendererRef.current = renderer
-
-    try {
-      const result = await renderer.export(project)
-
-      if (result.isErr()) {
-        setExportError(
-          result.error.type === 'FFMPEG.EXPORT_FAILED'
-            ? result.error.reason
-            : 'Export failed',
-        )
-        setExportState('error')
-        return
-      }
-
-      const blob = result.value
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${project.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.mp4`
-      a.click()
-      URL.revokeObjectURL(url)
-
-      setExportProgress(1)
-      setExportState('done')
-    } catch (e) {
-      setExportError(e instanceof Error ? e.message : 'Export failed')
-      setExportState('error')
-    } finally {
-      rendererRef.current = null
-    }
-  }, [project])
-
-  let buttonContent: React.ReactNode
-  if (exportState === 'exporting') {
-    buttonContent = (
-      <>
-        <Loader2 size={12} className="animate-spin" />
-        {Math.round(exportProgress * 100)}%
-      </>
-    )
-  } else if (exportState === 'done') {
-    buttonContent = (
-      <>
-        <Download size={12} />
-        Exported
-      </>
-    )
-  } else if (exportState === 'error') {
-    buttonContent = (
-      <>
-        <Video size={12} />
-        Retry
-      </>
-    )
-  } else {
-    buttonContent = (
-      <>
-        <Video size={12} />
-        Export
-      </>
-    )
-  }
-
-  let btnClass = 'flex items-center gap-1.5 rounded px-3 py-1 text-xs '
-  if (exportState === 'exporting') {
-    btnClass += 'bg-blue-800 text-blue-200 cursor-wait'
-  } else if (exportState === 'done') {
-    btnClass += 'bg-green-700 text-green-100'
-  } else if (exportState === 'error') {
-    btnClass += 'bg-red-800 text-red-200 hover:bg-red-700'
-  } else {
-    btnClass += 'bg-blue-600 text-white hover:bg-blue-500'
-  }
-
   return (
     <div className="flex h-10 items-center gap-2 border-b border-neutral-800 bg-neutral-900 px-3">
       <div className="flex items-center gap-1.5">
@@ -120,10 +72,19 @@ export function TopBar() {
         <span className="text-sm font-medium text-neutral-200">Spectux</span>
       </div>
       <div className="mx-2 h-5 w-px bg-neutral-700" />
-      <span className="text-sm text-neutral-400">
-        {project.name}
-        {isDirty && <span className="ml-1 text-neutral-500">•</span>}
-      </span>
+      <div className="flex items-center gap-1">
+        <span className="rounded px-1 text-sm text-neutral-400">
+          {project.name}
+        </span>
+        <button
+          onClick={openRename}
+          className="rounded p-0.5 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300"
+          title="Rename project"
+        >
+          <Pencil size={12} />
+        </button>
+        {isDirty && <span className="text-neutral-500">•</span>}
+      </div>
       <div className="flex-1" />
       <div className="flex items-center gap-1">
         <button
@@ -149,21 +110,83 @@ export function TopBar() {
         <Save size={12} />
         {saveMutation.isPending ? 'Saving...' : 'Save'}
       </button>
-      {exportState === 'error' && exportError && (
-        <span
-          className="max-w-64 truncate text-xs text-red-300"
-          title={exportError}
-        >
-          {exportError}
-        </span>
-      )}
       <button
         onClick={handleExport}
-        disabled={exportState === 'exporting'}
-        className={btnClass}
+        disabled={isExporting}
+        className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {buttonContent}
+        <Video size={12} />
+        {isExporting ? 'Exporting...' : 'Export'}
       </button>
+
+      {showRenameDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-80 rounded-lg border border-neutral-800 bg-neutral-900 p-5 shadow-xl">
+            <h2 className="mb-3 text-sm font-medium text-neutral-200">Rename project</h2>
+            <input
+              value={renameDraft}
+              onChange={(e) => setRenameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename()
+                if (e.key === 'Escape') setShowRenameDialog(false)
+              }}
+              className="mb-4 w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-200 outline-none ring-1 ring-transparent focus:ring-blue-500"
+              placeholder="Project name"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowRenameDialog(false)}
+                className="rounded bg-neutral-800 px-4 py-1.5 text-xs text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={commitRename}
+                className="rounded bg-blue-600 px-4 py-1.5 text-xs text-white hover:bg-blue-500"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportNamePrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-80 rounded-lg border border-neutral-800 bg-neutral-900 p-5 shadow-xl">
+            <h2 className="mb-3 text-sm font-medium text-neutral-200">Name your project</h2>
+            <p className="mb-3 text-xs text-neutral-500">
+              Give your project a name before exporting.
+            </p>
+            <input
+              value={exportNameDraft}
+              onChange={(e) => setExportNameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitExportName()
+                if (e.key === 'Escape') setShowExportNamePrompt(false)
+              }}
+              className="mb-4 w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-200 outline-none ring-1 ring-transparent focus:ring-blue-500"
+              placeholder="Project name"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowExportNamePrompt(false)}
+                className="rounded bg-neutral-800 px-4 py-1.5 text-xs text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={commitExportName}
+                className="rounded bg-blue-600 px-4 py-1.5 text-xs text-white hover:bg-blue-500"
+              >
+                Start Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -12,6 +12,7 @@ export const exportMachine = setup({
       | { type: 'PROGRESS'; progress: number }
       | { type: 'COMPLETE'; blob: Blob }
       | { type: 'FAILED'; error: string }
+      | { type: 'CANCEL' }
       | { type: 'RESET' },
   },
 }).createMachine({
@@ -37,6 +38,9 @@ export const exportMachine = setup({
       after: {
         100: 'encoding',
       },
+      on: {
+        CANCEL: 'idle',
+      },
     },
     encoding: {
       on: {
@@ -58,6 +62,7 @@ export const exportMachine = setup({
             context.error = event.error
           },
         },
+        CANCEL: 'idle',
       },
     },
     completed: {

@@ -34,6 +34,7 @@ export interface ProjectStore {
   setSnapping: (snapping: boolean) => void
   loadProject: (project: Project) => void
   markClean: () => void
+  setProjectName: (name: string) => void
 }
 
 function createDefaultProject(): Project {
@@ -179,6 +180,14 @@ export const useProjectStore = create<ProjectStore>()(
     markClean() {
       set((state) => {
         state.isDirty = false
+      })
+    },
+
+    setProjectName(name) {
+      set((state) => {
+        state.project.name = name
+        state.project.updatedAt = Date.now()
+        state.isDirty = true
       })
     },
   })),

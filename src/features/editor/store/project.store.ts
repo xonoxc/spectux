@@ -16,6 +16,7 @@ export interface ProjectStore {
   selectedTool: EditorTool
   snapping: boolean
   isDirty: boolean
+  isExporting: boolean
 
   cmd: CommandManager
 
@@ -35,6 +36,7 @@ export interface ProjectStore {
   loadProject: (project: Project) => void
   markClean: () => void
   setProjectName: (name: string) => void
+  setExporting: (exporting: boolean) => void
 }
 
 function createDefaultProject(): Project {
@@ -57,6 +59,7 @@ export const useProjectStore = create<ProjectStore>()(
     selectedTool: 'select',
     snapping: true,
     isDirty: false,
+    isExporting: false,
 
     cmd: createCommandManager(),
 
@@ -188,6 +191,12 @@ export const useProjectStore = create<ProjectStore>()(
         state.project.name = name
         state.project.updatedAt = Date.now()
         state.isDirty = true
+      })
+    },
+
+    setExporting(exporting) {
+      set((state) => {
+        state.isExporting = exporting
       })
     },
   })),

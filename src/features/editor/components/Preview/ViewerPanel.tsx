@@ -35,6 +35,7 @@ export function ViewerPanel() {
 
   const currentTime = useProjectStore((s) => s.currentTime)
   const setCurrentTime = useProjectStore((s) => s.setCurrentTime)
+  const isExporting = useProjectStore((s) => s.isExporting)
   const clipCount = useProjectStore((s) =>
     s.project.timeline.tracks.reduce((sum, t) => sum + t.clips.length, 0),
   )
@@ -77,6 +78,15 @@ export function ViewerPanel() {
     if (seekTime !== currentTime) setCurrentTime(seekTime)
     player.seek(seekTime)
   }, [clipCount])
+
+  useEffect(() => {
+    if (!isExporting) return
+    const player = playerRef.current
+    if (!player) return
+    player.pause()
+    player.seek(0)
+    setCurrentTime(0)
+  }, [isExporting, setCurrentTime])
 
   const togglePlay = useCallback(() => {
     const player = playerRef.current

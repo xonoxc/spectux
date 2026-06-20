@@ -13,12 +13,19 @@ export function ExportDialog({ actor }: ExportDialogProps) {
   const state = useSelector(actor, (s) => s as { value: string; context: { progress: number; error: string | null; outputBlob: Blob | null } })
   const send = actor.send
   const project = useProjectStore((s) => s.project)
+  const setExporting = useProjectStore((s) => s.setExporting)
   const rendererRef = useRef<ReturnType<typeof createFFmpegRenderer> | null>(null)
   const [elapsed, setElapsed] = useState(0)
   const startTimeRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stateValue = typeof state.value === 'string' ? state.value : 'encoding'
+
+  useEffect(() => {
+    if (stateValue === 'idle' || stateValue === 'completed' || stateValue === 'failed') {
+      setExporting(false)
+    }
+  }, [stateValue, setExporting])
 
   useEffect(() => {
     if (stateValue !== 'encoding') return

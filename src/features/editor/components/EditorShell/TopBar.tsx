@@ -15,6 +15,7 @@ export function TopBar({ actor }: TopBarProps) {
   const undo = useProjectStore((s) => s.undo)
   const redo = useProjectStore((s) => s.redo)
   const setProjectName = useProjectStore((s) => s.setProjectName)
+  const setExporting = useProjectStore((s) => s.setExporting)
   const saveMutation = useSaveProject()
 
   const exportState = useSelector(actor, (s) => (s as { value: string }).value)
@@ -44,6 +45,7 @@ export function TopBar({ actor }: TopBarProps) {
       setExportNameDraft(project.name)
       setShowExportNamePrompt(true)
     } else {
+      setExporting(true)
       actor.send({ type: 'START_EXPORT' })
     }
   }
@@ -54,6 +56,7 @@ export function TopBar({ actor }: TopBarProps) {
       setProjectName(trimmed)
     }
     setShowExportNamePrompt(false)
+    setExporting(true)
     actor.send({ type: 'START_EXPORT' })
   }
 

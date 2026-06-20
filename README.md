@@ -14,7 +14,7 @@ Spectux treats editing as a project document:
 
 ---
 
-## ✨ Vision
+## Vision
 
 Traditional video editors separate the editor engine from the interface.
 
@@ -45,7 +45,7 @@ The core owns the editing logic.
 
 ---
 
-# 🚀 Version 0.1 Goal
+# Version 0.1 Goal
 
 The first milestone focuses on a complete editing pipeline:
 
@@ -65,7 +65,7 @@ One polished workflow.
 
 ---
 
-# 🧩 Features Roadmap
+# Features Roadmap
 
 
 ## Project System

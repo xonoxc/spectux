@@ -362,11 +362,11 @@ Errors:
 
 ```ts
 {
-  type: 'TIMELINE.CLIP_NOT_FOUND'
+   type: "TIMELINE.CLIP_NOT_FOUND"
 }
 
 {
-  type: 'FFMPEG.EXPORT_FAILED'
+   type: "FFMPEG.EXPORT_FAILED"
 }
 ```
 

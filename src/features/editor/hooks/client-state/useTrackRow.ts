@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState, useMemo } from 'react'
 import type { Track as TrackModel, Asset } from '~'
-import { ClipItem } from './ClipItem'
 import { useProjectStore } from '../../store/project.store'
 import { addClip } from '~'
 import { ok } from 'neverthrow'
@@ -17,11 +16,7 @@ export interface TrackRowProps {
 
 export function useTrackRow({
   track,
-  trackIndex,
   pixelsPerSecond,
-  trackHeight,
-  selectedClipIds,
-  zoom,
 }: TrackRowProps) {
   const assets = useProjectStore((s) => s.project.assets)
   const assetMap = useMemo(() => {

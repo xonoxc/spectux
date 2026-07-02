@@ -1,4 +1,4 @@
-import { Trash2, Volume2, VolumeX } from 'lucide-react'
+import { Trash2, Volume2, VolumeX, Link2 } from 'lucide-react'
 import { useClipItem } from '#/features/editor/hooks/client-state/useClipItem'
 
 import type { ClipItemProps } from '#/features/editor/hooks/client-state/useClipItem'
@@ -19,6 +19,7 @@ export function ClipItem(props: ClipItemProps) {
     handleTrimStart,
     handleTrimEnd,
     handleDelete,
+    joinedToNext,
   } = useClipItem(props)
 
   return (
@@ -62,21 +63,21 @@ export function ClipItem(props: ClipItemProps) {
           {assetName}
         </span>
       </div>
-      <div className="absolute right-1 top-1/2 flex -translate-y-1/2 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={handleMute}
-          className="rounded bg-black/60 p-0.5 text-neutral-300 hover:bg-black/80"
+          className="rounded bg-black/60 p-1 text-neutral-300 hover:bg-black/80"
           title={clip.muted ? 'Unmute' : 'Mute'}
           style={{ opacity: clip.muted ? 1 : undefined }}
         >
-          {clip.muted ? <VolumeX size={10} /> : <Volume2 size={10} />}
+          {clip.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
         </button>
         <button
           onClick={handleDelete}
-          className="rounded bg-black/60 p-0.5 text-neutral-300 hover:bg-red-900/80 hover:text-red-100"
+          className="rounded bg-black/60 p-1 text-neutral-300 hover:bg-red-900/80 hover:text-red-100"
           title="Delete clip"
         >
-          <Trash2 size={10} />
+          <Trash2 size={12} />
         </button>
       </div>
       <div
@@ -84,6 +85,17 @@ export function ClipItem(props: ClipItemProps) {
         style={{ width: HANDLE_WIDTH }}
         onMouseDown={handleTrimEnd}
       />
+      {joinedToNext && (
+        <div
+          className="absolute top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+          style={{ left: '100%' }}
+          title="Joined clip"
+        >
+          <div className="flex h-4 w-4 items-center justify-center rounded-full border border-neutral-600 bg-neutral-800">
+            <Link2 size={8} className="text-neutral-400" />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

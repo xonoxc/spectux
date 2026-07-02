@@ -18,6 +18,7 @@ export interface ClipItemProps {
   isSelected: boolean
   zoom: number
   trackId: string
+  joinedToNext?: boolean
 }
 
 export function useClipItem({
@@ -27,6 +28,7 @@ export function useClipItem({
   trackHeight,
   isSelected,
   trackId,
+  joinedToNext,
 }: ClipItemProps) {
   void trackId
   const baseX = clip.timelineStart * pixelsPerSecond
@@ -189,6 +191,7 @@ export function useClipItem({
     handleTrimStart,
     handleTrimEnd,
     handleDelete,
+    joinedToNext,
   }
 }
 

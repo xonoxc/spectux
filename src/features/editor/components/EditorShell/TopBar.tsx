@@ -2,8 +2,11 @@ import { useState } from "react"
 import { useSelector } from "@xstate/react"
 import { useProjectStore } from "../../store/project.store"
 import { useSaveProject } from "../../hooks/useProjects"
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts"
 import { Save, Video, Undo2, Redo2, Pencil, Image, PanelRightClose } from "lucide-react"
 import type { ActorRef } from "xstate"
+
+const MOD_KEY = navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'
 
 interface TopBarProps {
   actor: ActorRef<any, any>
@@ -31,6 +34,8 @@ export function TopBar({ actor, onToggleMedia, onToggleInspector, showMobileMedi
 
   const [showExportNamePrompt, setShowExportNamePrompt] = useState(false)
   const [exportNameDraft, setExportNameDraft] = useState(project.name)
+
+  useKeyboardShortcuts({ onSave: handleSave, onExport: handleExport })
 
   function openRename() {
     setRenameDraft(project.name)
@@ -66,7 +71,8 @@ export function TopBar({ actor, onToggleMedia, onToggleInspector, showMobileMedi
   }
 
   function handleSave() {
-    saveMutation.mutate(project, {
+    const p = useProjectStore.getState().project
+    saveMutation.mutate(p, {
       onSuccess: () => {
         useProjectStore.getState().markClean()
       },
@@ -118,14 +124,14 @@ export function TopBar({ actor, onToggleMedia, onToggleInspector, showMobileMedi
         <button
           onClick={undo}
           className="rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
-          title="Undo"
+          title={`Undo (${MOD_KEY}+Z)`}
         >
           <Undo2 size={14} />
         </button>
         <button
           onClick={redo}
           className="rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
-          title="Redo"
+          title={`Redo (${MOD_KEY}+Shift+Z)`}
         >
           <Redo2 size={14} />
         </button>
@@ -139,6 +145,7 @@ export function TopBar({ actor, onToggleMedia, onToggleInspector, showMobileMedi
       >
         <Save size={12} />
         {saveMutation.isPending ? "Saving..." : "Save"}
+        <kbd className="ml-0.5 rounded bg-neutral-700 px-1 text-[10px] text-neutral-500">{MOD_KEY}+S</kbd>
       </button>
 
       {/* Export */}
@@ -149,6 +156,7 @@ export function TopBar({ actor, onToggleMedia, onToggleInspector, showMobileMedi
       >
         <Video size={12} />
         <span className="hidden sm:inline">{isExporting ? "Exporting..." : "Export"}</span>
+        <kbd className="ml-0.5 rounded bg-blue-700 px-1 text-[10px] text-blue-300">{MOD_KEY}+E</kbd>
       </button>
 
       {showRenameDialog && (

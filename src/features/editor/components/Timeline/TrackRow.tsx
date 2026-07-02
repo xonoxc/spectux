@@ -1,8 +1,11 @@
 import { ClipItem } from './ClipItem'
+import { clipEndTime } from '~'
 import { useTrackRow } from '#/features/editor/hooks/client-state/useTrackRow'
 import { cn } from 'shared/utils/cn'
 
 import type { TrackRowProps } from '#/features/editor/hooks/client-state/useTrackRow'
+
+const JOIN_TOLERANCE = 0.01
 
 export function TrackRow(props: TrackRowProps) {
   const {
@@ -16,6 +19,20 @@ export function TrackRow(props: TrackRowProps) {
     assetMap,
     isAudio,
   } = useTrackRow(props)
+
+  const sortedClips = [...track.clips].sort(
+    (a, b) => a.timelineStart - b.timelineStart,
+  )
+
+  const joinedSet = new Set<string>()
+  for (let i = 0; i < sortedClips.length - 1; i++) {
+    const cur = sortedClips[i]
+    const next = sortedClips[i + 1]
+    const curEnd = clipEndTime(cur)
+    if (Math.abs(curEnd - next.timelineStart) <= JOIN_TOLERANCE) {
+      joinedSet.add(cur.id)
+    }
+  }
 
   return (
     <div
@@ -57,6 +74,7 @@ export function TrackRow(props: TrackRowProps) {
           isSelected={props.selectedClipIds.includes(clip.id)}
           zoom={props.zoom}
           trackId={track.id}
+          joinedToNext={joinedSet.has(clip.id)}
         />
       ))}
     </div>
